@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>DBWFF Project Map – All Layers</title>
+  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+
+  <!-- Mapbox GL JS v2 -->
+  <link
+    href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css"
+    rel="stylesheet"
+  />
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    #map {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 100%;
+    }
+
+    .mapboxgl-popup {
+      max-width: 380px;
+    }
+    .mapboxgl-popup-content {
+      padding: 0;
+      border-radius: 12px;
+      box-shadow:
+        0 8px 20px rgba(0, 0, 0, 0.15),
+        0 1px 3px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+      font-family: inherit;
+    }
+
+    .popup-card {
+      background: #ffffff;
+    }
+    .popup-header {
+      padding: 14px 16px 8px;
+      border-bottom: 1px solid #f1f1f1;
+    }
+    .popup-pill-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 4px;
+      flex-wrap: wrap;
+    }
+    .popup-pill {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #4698ca; /* DBWFF blue */
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .popup-pill-outline {
+      background: #fff;
+      color: #555;
+      border: 1px solid #ddd;
+    }
+    .popup-title {
+      margin: 0 0 2px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #111;
+    }
+    .popup-partner {
+      margin: 0;
+      font-size: 13px;
+      color: #666;
+    }
+
+    .popup-body {
+      padding: 10px 16px 10px;
+    }
+    .popup-stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #999;
+      margin-bottom: 2px;
+    }
+    .popup-stat-value {
+      font-size: 15px;
+      font-weight: 600;
+      color: #222;
+    }
+
+    .popup-footer {
+      padding: 8px 16px 12px;
+      border-top: 1px solid #f1f1f1;
+      text-align: right;
+    }
+    .popup-link {
+      font-size: 12px;
+      font-weight: 500;
+      text-decoration: none;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid #4698ca;
+      color: #4698ca;
+    }
+    .popup-link:hover {
+      background: #4698ca;
+      color: #fff;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="map"></div>
+
+  <!-- Mapbox GL JS script -->
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+
+  <script>
+    // Your Mapbox access token
+    mapboxgl.accessToken =
+      'pk.eyJ1IjoiZGJ3ZmYyMDI1IiwiYSI6ImNtaWRsMmNhMzA3enkyaXB6aXgzd3RzZ2UifQ.vYGG3nNcbsu7MLDLajQETQ';
+
+    function titleCase(str) {
+      if (!str) return '';
+      return str.replace(/\w\S*/g, (txt) =>
+        txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+      );
+    }
+
+    // Shared popup layout for ALL layers
+    function createPopupHTML(props) {
+      const project =
+        (props.project_name || props.Project_name || '').replace(/_/g, ' ') || 'Project';
+      const partner =
+        (props.partner_name || props.Partner_name || '').replace(/_/g, ' ');
+      const pillar = titleCase((props.pillar || props.Pillar || '').replace(/_/g, ' '));
+      const year = props.Gift_year || props.gift_year || '';
+
+      const rawAmount = props.gift_amount || props.Gift_amount || '';
+      const amount = rawAmount;
+
+      const websiteRaw = (props.website || props.Website || '').trim();
+      const website = websiteRaw || null;
+
+      return `
+        <div class="popup-card">
+          <div class="popup-header">
+            <div class="popup-pill-row">
+              ${pillar ? `<span class="popup-pill">${pillar}</span>` : ''}
+              ${year ? `<span class="popup-pill popup-pill-outline">${year}</span>` : ''}
+            </div>
+            <h3 class="popup-title">${project}</h3>
+            ${partner ? `<p class="popup-partner">${partner}</p>` : ''}
+          </div>
+
+          <div class="popup-body">
+            ${
+              amount
+                ? `
+              <div>
+                <div class="popup-stat-label">DBWFF Investment</div>
+                <div class="popup-stat-value">${amount}</div>
+              </div>`
+                : ''
+            }
+          </div>
+
+          ${
+            website
+              ? `
+            <div class="popup-footer">
+              <a href="${website}" target="_blank" class="popup-link">
+                Visit partner site
+              </a>
+            </div>`
+              : ''
+          }
+        </div>
+      `;
+    }
+
+    // YMCA data (unchanged)
+    const ymcaData = {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.4818452, 41.59409115] },
+          "properties": {
+            "project_id": "YMCA-001",
+            "project_name": "Destination Hammond YMCA",
+            "partner_name": "Crossroads YMCA",
+            "pillar": "health and wellness",
+            "gift_amount": "$59 M",
+            "website": "https://dbwfamilyfoundation.org/project/hammond-destination-ymca/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.38202271, 41.36342967] },
+          "properties": {
+            "project_id": "YMCA-002",
+            "project_name": "Triangle Hills Day Camp",
+            "partner_name": "Crossroads YMCA",
+            "pillar": "health and wellness",
+            "gift_amount": "$15 M",
+            "website": "https://crymca.org/tri-hills"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.36501336, 41.43396143] },
+          "properties": {
+            "project_id": "YMCA-003",
+            "project_name": "Crown Point Sports Center",
+            "partner_name": "Crossroads YMCA",
+            "pillar": "health and wellness",
+            "gift_amount": "$30 M",
+            "website": "https://crymca.org/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.46777648, 41.51862099] },
+          "properties": {
+            "project_id": "YMCA-004",
+            "project_name": "Schererville Expansion (Jak’s Warehouse)",
+            "partner_name": "Crossroads YMCA",
+            "pillar": "health and wellness",
+            "gift_amount": "$26 M",
+            "website": "http://www.crymca.org/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.4875791, 41.58081979] },
+          "properties": {
+            "project_id": "YMCA-005",
+            "project_name": "Original Hammond Y Rennovation",
+            "partner_name": "Crossroads YMCA",
+            "pillar": "health and wellness",
+            "gift_amount": "$6 M",
+            "website": "https://www.nwitimes.com/news/local/article_b6926938-af7e-11ef-bcb8-b3e2a3fc3f56.html"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.37225139, 41.58519174] },
+          "properties": {
+            "project_id": "YMCA-006",
+            "project_name": "Tolleston Project",
+            "partner_name": "Crossroads YMCA",
+            "pillar": "health and wellness",
+            "gift_amount": "$15 M",
+            "website": "https://dbwfamilyfoundation.org/project/tolleston-opportunity-hub/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.36648999, 41.39249562] },
+          "properties": {
+            "project_id": "YMCA-007",
+            "project_name": "Southlake YMCA",
+            "partner_name": "Crossroads YMCA",
+            "pillar": "health and wellness",
+            "gift_amount": "$30M",
+            "website": "https://dbwfamilyfoundation.org/project/southlake-ymca/"
+          }
+        }
+      ]
+    };
+
+    // BSF data (red)
+    const bsfData = {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.33113585, 41.5103567] },
+          "properties": {
+            "project_id": "BSF-001",
+            "project_name": "Andrean High School",
+            "partner_name": "BSF",
+            "pillar": "K-12 education",
+            "website": "https://dbwfamilyfoundation.org/project/big-shoulders-fund/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.34668988, 41.48498375] },
+          "properties": {
+            "project_id": "BSF-002",
+            "project_name": "Aquinas",
+            "partner_name": "BSF",
+            "pillar": "K-12 education",
+            "website": "https://dbwfamilyfoundation.org/project/big-shoulders-fund/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.49188247, 41.62812404] },
+          "properties": {
+            "project_id": "BSF-003",
+            "project_name": "Bishop Noll Institute",
+            "partner_name": "BSF",
+            "pillar": "K-12 education",
+            "website": "https://dbwfamilyfoundation.org/project/big-shoulders-fund/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-86.90271807, 41.71110789] },
+          "properties": {
+            "project_id": "BSF-004",
+            "project_name": "Marquette Catholic High School",
+            "partner_name": "BSF",
+            "pillar": "K-12 education",
+            "website": "https://dbwfamilyfoundation.org/project/big-shoulders-fund/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.18137792, 41.56764838] },
+          "properties": {
+            "project_id": "BSF-005",
+            "project_name": "Nativity of Our  Savior",
+            "partner_name": "BSF",
+            "pillar": "K-12 education",
+            "website": "https://dbwfamilyfoundation.org/project/big-shoulders-fund/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-86.83433568, 41.74457499] },
+          "properties": {
+            "project_id": "BSF-006",
+            "project_name": "Notre Dame",
+            "partner_name": "BSF",
+            "pillar": "K-12 education",
+            "website": "https://dbwfamilyfoundation.org/project/big-shoulders-fund/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.4549335, 41.55610931] },
+          "properties": {
+            "project_id": "BSF-007",
+            "project_name": "Our  Lady of Grace",
+            "partner_name": "BSF",
+            "pillar": "K-12 education",
+            "website": "https://dbwfamilyfoundation.org/project/big-shoulders-fund/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-86.87379233, 41.7053236] },
+          "properties": {
+            "project_id": "BSF-008",
+            "project_name": "Queen of All Saints",
+            "partner_name": "BSF",
+            "pillar": "K-12 education",
+            "website": "https://dbwfamilyfoundation.org/project/big-shoulders-fund/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.51408709, 41.6349411] },
+          "properties": {
+            "project_id": "BSF-009",
+            "project_name": "St.Casimir",
+            "partner_name": "BSF",
+            "pillar": "K-12 education",
+            "website": "https://dbwfamilyfoundation.org/project/big-shoulders-fund/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.50150969, 41.68016907] },
+          "properties": {
+            "project_id": "BSF-010",
+            "project_name": "St.John the Baptist",
+            "partner_name": "BSF",
+            "pillar": "K-12 education",
+            "website": "https://dbwfamilyfoundation.org/project/big-shoulders-fund/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.49905385, 41.58440949] },
+          "properties": {
+            "project_id": "BSF-011",
+            "project_name": "St.John Bosco",
+            "partner_name": "BSF",
+            "pillar": "K-12 education",
+            "website": "https://dbwfamilyfoundation.org/project/big-shoulders-fund/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.47109782, 41.4494563] },
+          "properties": {
+            "project_id": "BSF-012",
+            "project_name": "St.John the Evangelist",
+            "partner_name": "BSF",
+            "pillar": "K-12 education",
+            "website": "https://dbwfamilyfoundation.org/project/big-shoulders-fund/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.36120911, 41.41470122] },
+          "properties": {
+            "project_id": "BSF-013",
+            "project_name": "St.Mary",
+            "partner_name": "BSF",
+            "pillar": "K-12 education",
+            "website": "https://dbwfamilyfoundation.org/project/big-shoulders-fund/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.42721314, 41.53118702] },
+          "properties": {
+            "project_id": "BSF-014",
+            "project_name": "St.Mary School",
+            "partner_name": "BSF",
+            "pillar": "K-12 education",
+            "website": "https://dbwfamilyfoundation.org/project/big-shoulders-fund/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.45234661, 41.49135446] },
+          "properties": {
+            "project_id": "BSF-015",
+            "project_name": "St.Michael",
+            "partner_name": "BSF",
+            "pillar": "K-12 education",
+            "website": "https://dbwfamilyfoundation.org/project/big-shoulders-fund/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.04721043, 41.61934786] },
+          "properties": {
+            "project_id": "BSF-016",
+            "project_name": "St.Patrick",
+            "partner_name": "BSF",
+            "pillar": "K-12 education",
+            "website": "https://dbwfamilyfoundation.org/project/big-shoulders-fund/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.08333567, 41.48352099] },
+          "properties": {
+            "project_id": "BSF-017",
+            "project_name": "St.Paul",
+            "partner_name": "BSF",
+            "pillar": "K-12 education",
+            "website": "https://dbwfamilyfoundation.org/project/big-shoulders-fund/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.48125772, 41.62417723] },
+          "properties": {
+            "project_id": "BSF-018",
+            "project_name": "Saint Stanislaus",
+            "partner_name": "BSF",
+            "pillar": "K-12 education",
+            "website": "https://dbwfamilyfoundation.org/project/big-shoulders-fund/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-86.89805815, 41.70822039] },
+          "properties": {
+            "project_id": "BSF-019",
+            "project_name": "St.Stanislaus Kostka",
+            "partner_name": "BSF",
+            "pillar": "K-12 education",
+            "website": "https://dbwfamilyfoundation.org/project/big-shoulders-fund/"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.50780737, 41.55971894] },
+          "properties": {
+            "project_id": "BSF-020",
+            "project_name": "St.Thomas More",
+            "partner_name": "BSF",
+            "pillar": "K-12 education",
+            "website": "https://dbwfamilyfoundation.org/project/big-shoulders-fund/"
+          }
+        }
+      ]
+    };
+
+    // NILEA (brown, public safety)
+    const nileaData = {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [-87.00741978, 41.44479971]
+          },
+          "properties": {
+            "project_id": "NILEA-001",
+            "project_name": "Northern Indiana Law Enforcement Academy Relocation",
+            "partner_name": "Northern Indiana Law Enforcement Academy Relocation",
+            "pillar": "public safety"
+          }
+        }
+      ]
+    };
+
+    // Healthcare Systems (yellow)
+    const healthcareData = {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.36711883, 41.39592929] },
+          "properties": {
+            "project_id": "HS-001",
+            "project_name": "Franciscan Cancer Center",
+            "pillar": "health and wellness"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.51197735, 41.53816134] },
+          "properties": {
+            "project_id": "HS-002",
+            "project_name": "Franciscan Health Munster",
+            "pillar": "health and wellness"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-86.89805416, 41.65992369] },
+          "properties": {
+            "project_id": "HS-003",
+            "project_name": "Franciscan Health Michigan City",
+            "pillar": "health and wellness"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.50666853, 41.5510477] },
+          "properties": {
+            "project_id": "HS-004",
+            "project_name": "Powers Health Munster",
+            "pillar": "health and wellness"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.44737204, 41.63533433] },
+          "properties": {
+            "project_id": "HS-005",
+            "project_name": "Powers St. Catherine Hospital",
+            "pillar": "health and wellness"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.26437276, 41.51198905] },
+          "properties": {
+            "project_id": "HS-006",
+            "project_name": "Powers Health Hobart",
+            "pillar": "health and wellness"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.02007535, 41.50291356] },
+          "properties": {
+            "project_id": "HS-007",
+            "project_name": "Powers Health Valparaiso",
+            "pillar": "health and wellness"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.36522569, 41.5741089] },
+          "properties": {
+            "project_id": "HS-008",
+            "project_name": "Methodist Southlake Campus",
+            "pillar": "health and wellness"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.35782273, 41.60063128] },
+          "properties": {
+            "project_id": "HS-009",
+            "project_name": "Methodist Northlake Campus",
+            "pillar": "health and wellness"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.37225139, 41.58519174] },
+          "properties": {
+            "project_id": "HS-010",
+            "project_name": "Methodist at Tolleston Opportunity Hub",
+            "pillar": "health and wellness"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.32424181, 41.42134599] },
+          "properties": {
+            "project_id": "HS-011",
+            "project_name": "UChicago Medicine",
+            "pillar": "health and wellness"
+          }
+        }
+      ]
+    };
+
+    // Community Development (green)
+    const communityDevData = {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [87.36698606, 41.41626237] },
+          "properties": {
+            "project_name": "Bulldog Park",
+            "partner_name": "City of Crown Point",
+            "pillar": "Community Development"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.33710667, 41.49817408] },
+          "properties": {
+            "project_name": "Merrillville Community Center",
+            "partner_name": "Legacy Foundation",
+            "pillar": "Community Development"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.34980383, 41.41238188] },
+          "properties": {
+            "project_name": "Sauerman Woods and Skate Park",
+            "partner_name": "City of Crown Point",
+            "pillar": "Community Development"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.17411392, 41.430453] },
+          "properties": {
+            "project_name": "Lake Eliza Campus",
+            "partner_name": "Opportunity Enterprises",
+            "pillar": "Community Development"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.34525205, 41.195881] },
+          "properties": {
+            "project_name": "Community Center",
+            "partner_name": "Shelby",
+            "pillar": "Community Development"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.42482788, 41.29292196] },
+          "properties": {
+            "project_name": "Lowell Nassau Park",
+            "partner_name": "Town of Lowell",
+            "pillar": "Community Development"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.0548659, 41.45961134] },
+          "properties": {
+            "project_name": "Respite House for Men",
+            "partner_name": "City of Valparaiso",
+            "pillar": "Community Development"
+          }
+        }
+      ]
+    };
+
+    // Boys & Girls Club (blue)
+    const bgcData = {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.05169217, 41.47764397] },
+          "properties": {
+            "project_id": "BG-001",
+            "project_name": "Valparaiso B&G Club",
+            "partner_name": "Boys and Girls Club of Greater NWI",
+            "pillar": "K-12 Education"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.37225139, 41.58519174] },
+          "properties": {
+            "project_id": "BG-002",
+            "project_name": "Gary B&G",
+            "partner_name": "Boys and Girls Club of Greater NWI",
+            "pillar": "K-12 Education"
+          }
+        }
+      ]
+    };
+
+    // MAAC Foundation (navy)
+    const maacData = {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.00733395, 41.44587736] },
+          "properties": {
+            "project_id": "MF-001",
+            "project_name": "Training Facility and K-9 Program",
+            "partner_name": "MAAC Foundation",
+            "pillar": "public safety"
+          }
+        }
+      ]
+    };
+
+    // Purdue Northwest (gold)
+    const pnwData = {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.4724407, 41.58119481] },
+          "properties": {
+            "project_id": "PNW-001",
+            "project_name": "PNW Hammond",
+            "pillar": "higher education"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-86.89382639, 41.58389607] },
+          "properties": {
+            "project_id": "PNW-002",
+            "project_name": "PNW Westville",
+            "pillar": "higher education"
+          }
+        }
+      ]
+    };
+
+    // South Shore Line stations (orange)
+    const southShoreData = {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.4981, 41.5863] },
+          "properties": {
+            "project_id": "SSL-001",
+            "project_name": "Hammond Gateway Station"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.4189, 41.623] },
+          "properties": {
+            "project_id": "SSL-002",
+            "project_name": "East Chicago Station"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.3383, 41.6048] },
+          "properties": {
+            "project_id": "SSL-003",
+            "project_name": "Gary Metro Center Station"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.3897, 41.6033] },
+          "properties": {
+            "project_id": "SSL-004",
+            "project_name": "Gary/Chicago Airport Station"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.26665429, 41.59737562] },
+          "properties": {
+            "project_id": "SSL-005",
+            "project_name": "Miller (Gary)"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.1537, 41.6355] },
+          "properties": {
+            "project_id": "SSL-006",
+            "project_name": "Portage/Ogden Dunes Station"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-87.062, 41.6042] },
+          "properties": {
+            "project_id": "SSL-007",
+            "project_name": "Dune Park Station"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-86.98612379, 41.67370142] },
+          "properties": {
+            "project_id": "SSL-008",
+            "project_name": "Beverly Shores"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-86.89684176, 41.71250621] },
+          "properties": {
+            "project_id": "SSL-009",
+            "project_name": "11th Street"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-86.8837, 41.7076] },
+          "properties": {
+            "project_id": "SSL-010",
+            "project_name": "Carroll Avenue Station"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-86.53764155, 41.7095661] },
+          "properties": {
+            "project_id": "SSL-011",
+            "project_name": "Hudson Lake"
+          }
+        },
+        {
+          "type": "Feature",
+          "geometry": { "type": "Point", "coordinates": [-86.31097246, 41.70090416] },
+          "properties": {
+            "project_id": "SSL-012",
+            "project_name": "South Bend International Airport"
+          }
+        }
+      ]
+    };
+
+    // Create the map
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: [-87.4, 41.5],
+      zoom: 9
+    });
+
+    // Reusable helper to add circles + popups
+    function addCircleLayerWithPopup(layerId, sourceId, color) {
+      map.addLayer({
+        id: layerId,
+        type: 'circle',
+        source: sourceId,
+        paint: {
+          'circle-radius': 10,
+          'circle-color': color,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#ffffff'
+        }
+      });
+
+      map.on('click', layerId, (e) => {
+        const feature = e.features[0];
+        const props = feature.properties;
+        const coords = feature.geometry.coordinates.slice();
+        const html = createPopupHTML(props);
+
+        new mapboxgl.Popup()
+          .setLngLat(coords)
+          .setHTML(html)
+          .addTo(map);
+      });
+
+      map.on('mouseenter', layerId, () => {
+        map.getCanvas().style.cursor = 'pointer';
+      });
+      map.on('mouseleave', layerId, () => {
+        map.getCanvas().style.cursor = '';
+      });
+    }
+
+    map.on('load', () => {
+      // Sources
+      map.addSource('ymca', { type: 'geojson', data: ymcaData });
+      map.addSource('bsf', { type: 'geojson', data: bsfData });
+      map.addSource('nilea', { type: 'geojson', data: nileaData });
+      map.addSource('healthcare', { type: 'geojson', data: healthcareData });
+      map.addSource('communityDev', { type: 'geojson', data: communityDevData });
+      map.addSource('bgc', { type: 'geojson', data: bgcData });
+      map.addSource('maac', { type: 'geojson', data: maacData });
+      map.addSource('pnw', { type: 'geojson', data: pnwData });
+      map.addSource('southShore', { type: 'geojson', data: southShoreData });
+
+      // Layers with your color scheme
+      addCircleLayerWithPopup('ymca-layer', 'ymca', '#8b3dd9');     // purple
+      addCircleLayerWithPopup('bsf-layer', 'bsf', '#d62828');      // red
+      addCircleLayerWithPopup('nilea-layer', 'nilea', '#8b5a2b');  // brown
+      addCircleLayerWithPopup('health-layer', 'healthcare', '#f1c40f'); // yellow
+      addCircleLayerWithPopup('commdev-layer', 'communityDev', '#2e8b57'); // green
+      addCircleLayerWithPopup('bgc-layer', 'bgc', '#0077b6');      // blue
+      addCircleLayerWithPopup('maac-layer', 'maac', '#003366');    // navy
+      addCircleLayerWithPopup('pnw-layer', 'pnw', '#d4af37');      // gold
+      addCircleLayerWithPopup('ssl-layer', 'southShore', '#f39c12'); // orange
+    });
+  </script>
+</body>
+</html>
